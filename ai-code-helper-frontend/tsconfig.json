@@ -1,0 +1,27 @@
+{
+  "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "include": [
+    "env.d.ts",
+    "src/**/*",
+    "src/**/*.vue",
+    "types/**/*"
+  ],
+  "exclude": [
+    "src/**/__tests__/*"
+  ],
+  "compilerOptions": {
+    "composite": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "types": [
+      "vite/client",
+      "node",
+      "animejs",
+      "echarts",
+      "matter-js",
+      "p5"
+    ]
+  }
+}
