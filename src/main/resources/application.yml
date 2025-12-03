@@ -3,9 +3,9 @@ spring:
     name: ai-code-helper
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/webappgenerator
+    url: jdbc:mysql://localhost:3306
     username: root
-    password: 123456
+    password:
   # 1. Spring Session 依赖的 Redis 配置（供 Session 存储使用）
   data:
     redis:
