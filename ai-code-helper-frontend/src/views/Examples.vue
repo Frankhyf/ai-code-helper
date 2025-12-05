@@ -350,9 +350,9 @@ const closeDetailDialog = () => {
 
 // 预览已部署的应用
 const previewDeployedApp = (app: App) => {
-  if (app.deployKey) {
-    const deployedUrl = `http://localhost/${app.deployKey}/`
-    window.open(deployedUrl, '_blank')
+  if (app.deployUrl) {
+    // 直接使用后端返回的完整部署 URL
+    window.open(app.deployUrl, '_blank')
   } else {
     showToast('该应用尚未部署')
   }

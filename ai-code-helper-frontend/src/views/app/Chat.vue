@@ -472,10 +472,9 @@ const deployCurrentApp = async () => {
   if (!currentApp.value) return
 
   // 如果已部署，直接跳转到部署的网站
-  if (currentApp.value.deployedTime && currentApp.value.deployKey) {
-    const deployedUrl = `http://localhost/${currentApp.value.deployKey}/`
-    console.log('跳转到已部署网站:', deployedUrl)
-    window.open(deployedUrl, '_blank')
+  if (currentApp.value.deployedTime && currentApp.value.deployUrl) {
+    console.log('跳转到已部署网站:', currentApp.value.deployUrl)
+    window.open(currentApp.value.deployUrl, '_blank')
     return
   }
 
@@ -484,17 +483,13 @@ const deployCurrentApp = async () => {
     showToast('正在部署...')
     const deployUrl = await appStore.deployApp(currentApp.value.id)
     if (deployUrl) {
-      // 重新获取应用详情，获取最新的 deployKey
-      const detail = await appStore.fetchAppDetail(currentApp.value.id)
       showToast('部署成功，正在跳转...')
       
       // 延迟跳转，确保部署完成
       setTimeout(() => {
-        if (detail?.deployKey) {
-          const deployedUrl = `http://localhost/${detail.deployKey}/`
-          console.log('跳转到新部署网站:', deployedUrl)
-          window.open(deployedUrl, '_blank')
-        }
+        // 直接使用后端返回的完整 URL
+        console.log('跳转到新部署网站:', deployUrl)
+        window.open(deployUrl, '_blank')
       }, 500)
     }
   } catch (error) {
@@ -623,7 +618,7 @@ const toggleEditMode = () => {
     })
   } else {
     // 退出编辑模式
-    exitEditMode()
+    exitEditModeHandler()
   }
 }
 
@@ -832,7 +827,7 @@ const autoSendInitialMessage = async (app?: App | null) => {
   setTimeout(async () => {
     try {
       showToast('正在根据您的描述生成代码...')
-      await appStore.chatWithAI(appId.value, app.initPrompt)
+      await appStore.chatWithAI(appId.value, app.initPrompt!)
     } catch (error) {
       console.error('自动发送初始消息失败:', error)
       showToast('自动生成代码失败，请手动发送消息')

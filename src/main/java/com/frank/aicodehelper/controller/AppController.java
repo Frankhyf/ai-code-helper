@@ -78,7 +78,7 @@ public class AppController {
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 id 错误");
         ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "提示词不能为空");
         
-        // 🔑 关键：设置响应头禁用缓冲，确保流式输出实时到达前端
+        // 设置响应头禁用缓冲，确保流式输出实时到达前端
         response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
         response.setHeader("X-Accel-Buffering", "no");  // 禁用 Nginx 代理缓冲
         response.setHeader("Connection", "keep-alive");

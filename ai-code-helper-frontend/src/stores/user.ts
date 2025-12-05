@@ -51,11 +51,12 @@ export const useUserStore = defineStore('user', () => {
   // 注册
   const register = async (form: RegisterForm) => {
     try {
-      // 后端需要的字段名：userAccount, userPassword, checkPassword
+      // 后端需要的字段名：userAccount, userPassword, checkPassword, userName
       const registerPayload = {
         userAccount: form.account,
         userPassword: form.password,
         checkPassword: form.confirmPassword,
+        userName: form.nickname || undefined,  // 传递昵称到后端
       }
       await http.post('/user/register', registerPayload)
       showToast('注册成功，请登录')

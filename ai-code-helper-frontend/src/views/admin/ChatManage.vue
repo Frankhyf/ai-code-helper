@@ -150,7 +150,7 @@
                 <td class="px-6 py-4 whitespace-nowrap">
                   <span 
                     class="px-2 py-1 text-xs rounded-full"
-                    :class="getMessageTypeClass(chat.messageType)"
+                    :class="getMessageTypeClass(chat.messageType || '')"
                   >
                     {{ chat.messageType === 'user' ? '用户消息' : 'AI消息' }}
                   </span>
@@ -167,9 +167,9 @@
                 
                 <!-- 创建时间 -->
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                  {{ new Date(chat.createTime).toLocaleDateString() }}
+                  {{ chat.createTime ? new Date(chat.createTime).toLocaleDateString() : '-' }}
                   <div class="text-xs text-gray-500">
-                    {{ new Date(chat.createTime).toLocaleTimeString() }}
+                    {{ chat.createTime ? new Date(chat.createTime).toLocaleTimeString() : '' }}
                   </div>
                 </td>
               </tr>
@@ -232,7 +232,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { showToast } from 'vant'
 import { listAllChatHistoryByPageForAdmin } from '@/api/chatHistoryController'
-import type { API } from '@/api/typings'
+// API 类型定义在 typings.d.ts 中作为全局命名空间声明
 import AdminNav from '@/components/layout/AdminNav.vue'
 
 // 搜索参数
@@ -312,14 +312,13 @@ const loadChats = async () => {
       params.message = searchParams.value.message
     }
     
-    const response = await listAllChatHistoryByPageForAdmin(params)
+    // request 拦截器已处理响应，直接返回 data 部分（PageChatHistory 类型）
+    const data = await listAllChatHistoryByPageForAdmin(params) as unknown as API.PageChatHistory
     
-    if (response?.code === 0 && response?.data) {
-      chats.value = response.data.records || []
-      totalChats.value = response.data.totalRow || 0
+    if (data) {
+      chats.value = data.records || []
+      totalChats.value = data.totalRow || 0
       console.log('对话列表加载成功，共', totalChats.value, '条记录')
-    } else {
-      showToast('加载失败：' + (response?.message || '未知错误'))
     }
   } catch (error) {
     console.error('加载对话列表失败:', error)

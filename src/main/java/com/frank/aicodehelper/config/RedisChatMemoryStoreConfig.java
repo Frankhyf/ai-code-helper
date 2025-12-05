@@ -1,5 +1,6 @@
 package com.frank.aicodehelper.config;
 
+import cn.hutool.core.util.StrUtil;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -21,21 +22,16 @@ public class RedisChatMemoryStoreConfig {
 
     @Bean
     public RedisChatMemoryStore redisChatMemoryStore() {
-        // 只有在密码不为空时才设置密码
-        if (password != null && !password.isEmpty()) {
-            return RedisChatMemoryStore.builder()
-                    .host(host)
-                    .port(port)
-                    .password(password)
-                    .ttl(ttl)
-                    .build();
-        } else {
-            return RedisChatMemoryStore.builder()
-                    .host(host)
-                    .port(port)
-                    .ttl(ttl)
-                    .build();
+        RedisChatMemoryStore.Builder builder = RedisChatMemoryStore.builder()
+                .host(host)
+                .port(port)
+                .password(password)
+                .ttl(ttl);
+        if (StrUtil.isNotBlank(password)) {
+            builder.user("default");
         }
+        return builder.build();
     }
+
 }
 

@@ -13,8 +13,7 @@ public class AppAddRequest implements Serializable {
     private String initPrompt;
 
     /**
-     * 代码生成类型：html(单文件) 或 multi_file(多文件)
-     * 默认为 html
+     * 代码生成类型：HTML、MULTI_FILE、VUE_PROJECT"
      */
     private String codeGenType;
 

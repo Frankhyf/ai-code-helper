@@ -31,6 +31,7 @@
   "devDependencies": {
     "@types/animejs": "^3.1.12",
     "@types/echarts": "^4.9.22",
+    "@types/markdown-it": "^14.1.2",
     "@types/matter-js": "^0.19.7",
     "@types/node": "^20.11.30",
     "@types/p5": "^1.7.6",

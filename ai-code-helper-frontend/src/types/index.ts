@@ -29,13 +29,14 @@ export interface App {
   initPrompt?: string
   codeGenType?: string
   deployKey?: string
+  deployUrl?: string  // 完整的部署 URL（由后端返回）
   deployedTime?: string
 }
 
 // 对话消息类型
 export interface ChatMessage {
   id: number
-  appId: number
+  appId: number | string
   userId: number
   type: 'user' | 'ai' | 'system'
   content: string

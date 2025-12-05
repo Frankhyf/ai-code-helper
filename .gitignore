@@ -1,6 +1,7 @@
 ###COSTOM###
 application-local.yml
 tmp
+application-prod.yml
 
 HELP.md
 target/

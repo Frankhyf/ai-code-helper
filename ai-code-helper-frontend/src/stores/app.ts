@@ -293,14 +293,15 @@ export const useAppStore = defineStore('app', () => {
   // 部署应用
   const deployApp = async (id: number | string) => {
     try {
-      // 后端返回完整的部署URL，例如：http://localhost:8123/api/static/html_123/
+      // 后端返回完整的部署URL（如 http://175.178.105.217/dist/Kehanf/）
       const deployUrl = await http.post<string>('/app/deploy', { appId: id })
       
-      // 从URL中提取deployKey（例如：html_123）
+      // 从URL中提取deployKey（例如：Kehanf）
       let deployKey: string | undefined
       if (typeof deployUrl === 'string') {
-        const match = deployUrl.match(/\/static\/([^\/]+)/)
-        deployKey = match ? match[1] : deployUrl.split('/').filter(Boolean).pop()
+        // 匹配 URL 最后一个路径段作为 deployKey
+        const match = deployUrl.match(/\/([^\/]+)\/?$/)
+        deployKey = match ? match[1] : undefined
       }
       
       // 更新当前应用状态
@@ -309,6 +310,7 @@ export const useAppStore = defineStore('app', () => {
           ...currentApp.value,
           status: 'deployed',
           deployKey: deployKey ?? currentApp.value.deployKey,
+          deployUrl: typeof deployUrl === 'string' ? deployUrl : currentApp.value.deployUrl,
         }
       }
       
@@ -320,6 +322,7 @@ export const useAppStore = defineStore('app', () => {
             ...list[index],
             status: 'deployed',
             deployKey: deployKey ?? list[index].deployKey,
+            deployUrl: typeof deployUrl === 'string' ? deployUrl : list[index].deployUrl,
           }
         }
       }
@@ -335,7 +338,7 @@ export const useAppStore = defineStore('app', () => {
   }
 
   // AI对话生成
-  const chatWithAI = async (appId: number, prompt: string) => {
+  const chatWithAI = async (appId: number | string, prompt: string) => {
     const userStore = useUserStore()
     const currentUser = userStore.user
     isGenerating.value = true
