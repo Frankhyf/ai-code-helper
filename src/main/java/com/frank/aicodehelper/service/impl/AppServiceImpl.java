@@ -76,6 +76,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
     @Resource
     private ProjectSummaryService projectSummaryService;
 
+    @Resource
+    private com.frank.aicodehelper.rag.service.RagEnhancedMessageService ragEnhancedMessageService;
+
+    @Resource
+    private com.frank.aicodehelper.rag.service.ProjectContextService projectContextService;
+
     /**
      * 应用部署域名（从配置文件读取，支持不同环境）
      */
@@ -175,8 +181,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         }
         // 5. 通过校验后，添加用户消息到对话历史（存储原始消息，不含项目状态摘要）
         chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
-        // 6. 动态注入项目状态摘要到用户消息中（确保 AI 即使对话历史被截断也能了解项目结构）
-        String enhancedMessage = projectSummaryService.enhanceUserMessage(message, appId, codeGenTypeEnum);
+        // 6. 使用 RAG 增强用户消息（注入项目结构 + 语义检索相关代码上下文）
+        String enhancedMessage = ragEnhancedMessageService.enhanceMessage(message, appId, codeGenTypeEnum);
         // 7. 调用 AI 生成代码（流式）- 传递 userId 用于在 TokenStream 回调中保存对话记录
         Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(
                 enhancedMessage, codeGenTypeEnum, appId, loginUser.getId());
@@ -330,6 +336,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         } catch (Exception e) {
             // 记录日志但不阻止应用删除
             log.error("删除应用关联对话历史失败: {}", e.getMessage());
+        }
+        // 删除关联的 RAG 向量索引
+        try {
+            projectContextService.deleteByAppId(appId);
+        } catch (Exception e) {
+            log.error("删除应用关联 RAG 索引失败: {}", e.getMessage());
         }
         // 删除应用
         return super.removeById(id);

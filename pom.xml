@@ -88,6 +88,12 @@
             <artifactId>dashscope-sdk-java</artifactId>
             <version>2.21.1</version>
         </dependency>
+        <!-- LangChain4j DashScope 集成（阿里通义千问） -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-community-dashscope</artifactId>
+            <version>1.1.0-beta7</version>
+        </dependency>
         <!-- Selenium 网页截图依赖 -->
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>

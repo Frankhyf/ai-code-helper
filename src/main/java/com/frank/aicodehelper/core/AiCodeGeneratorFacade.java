@@ -50,6 +50,8 @@ public class AiCodeGeneratorFacade {
     private ChatHistoryService chatHistoryService;
     @Resource
     private com.frank.aicodehelper.ai.tools.ToolManager toolManager;
+    @Resource
+    private com.frank.aicodehelper.rag.listener.ToolExecutionRagListener ragListener;
 
     /**
      * 统一入口：根据类型生成并保存代码（使用 appId）
@@ -121,13 +123,13 @@ public class AiCodeGeneratorFacade {
      * @return Flux<String> 流式响应
      */
     private Flux<String> processTokenStream(TokenStream tokenStream, Long appId, Long userId) {
-        // 🔑 关键：创建数据收集器，在 TokenStream 回调中收集数据
+        // 创建数据收集器，在 TokenStream 回调中收集数据
         StreamDataCollector collector = new StreamDataCollector();
         // 使用 AtomicBoolean 确保只保存一次，避免重复保存
         AtomicBoolean saved = new AtomicBoolean(false);
         
         return Flux.<String>create(sink -> {
-            // 🔑 关键：注册取消回调，当用户刷新导致连接断开时保存数据
+            // 关键：注册取消回调，当用户刷新导致连接断开时保存数据
             sink.onCancel(() -> {
                 log.info("App {} 检测到连接取消，尝试保存已收集内容", appId);
                 if (saved.compareAndSet(false, true)) {
@@ -135,7 +137,7 @@ public class AiCodeGeneratorFacade {
                 }
             });
             
-            // 🔑 关键：注册销毁回调（双重保险）
+            // 关键：注册销毁回调（双重保险）
             sink.onDispose(() -> {
                 log.info("App {} Sink 被销毁，尝试保存已收集内容", appId);
                 if (saved.compareAndSet(false, true)) {
@@ -182,6 +184,9 @@ public class AiCodeGeneratorFacade {
                             }
                         }
                         collector.appendResponse("\n\n" + formattedResult + "\n\n");
+                        
+                        // 🆕 RAG 索引：工具执行后异步触发向量索引更新
+                        ragListener.onToolExecuted(toolExecution, appId);
                         
                         try {
                             ToolExecutedMessage msg = new ToolExecutedMessage(toolExecution);
