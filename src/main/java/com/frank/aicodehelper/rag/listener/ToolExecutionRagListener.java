@@ -79,9 +79,10 @@ public class ToolExecutionRagListener {
      */
     private void handleModifyFile(Long appId, String arguments, String result) {
         JSONObject args = JSONUtil.parseObj(arguments);
-        String filePath = args.getStr("filePath");
+        // modifyFile 工具参数名称为 relativeFilePath，这里兼容 filePath/relativeFilePath 两种写法
+        String filePath = args.getStr("relativeFilePath", args.getStr("filePath"));
 
-        // modifyFile 的参数结构：filePath, oldString, newString
+        // modifyFile 的参数结构：relativeFilePath, oldContent, newContent
         // 我们需要获取修改后的完整文件内容
         // 但工具执行后的 result 通常只是成功提示，不含完整内容
         // 所以这里需要从文件系统重新读取

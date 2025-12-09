@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import redis.clients.jedis.exceptions.JedisDataException;
 
 import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
 
@@ -220,20 +221,22 @@ public class ProjectContextServiceImpl implements ProjectContextService {
         }
 
         try {
-            // 构建复合过滤条件：appId AND filePath（或以 filePath 开头）
-            // 注意：由于分片后 filePath 可能包含 #template, #script 等后缀
-            // 需要删除所有以原始 filePath 开头的记录
-            Filter appFilter = metadataKey("appId").isEqualTo(appId.toString());
+            // 构建复合过滤条件：appId AND filePath 精确匹配
+            // 分片时 filePath 已带 #fragment，因此这里使用基础路径即可避免误删其他文件
+            Filter filter = metadataKey("appId").isEqualTo(appId.toString())
+                    .and(metadataKey("filePath").isEqualTo(filePath));
 
-            // 由于 LangChain4j 的 Filter 不直接支持 startsWith
-            // 我们使用 isEqualTo 匹配精确路径，并在分片时保持基础路径一致
-            // 这里简化处理：分片的 filePath 会带 #fragment，我们匹配包含基础路径的
-            // 实际实现中可能需要调整分片策略或使用更复杂的删除逻辑
-
-            // 简化方案：直接按 appId 和精确 filePath 删除
-            // 分片的删除通过在 indexCodeFile 开始时调用来处理
-            embeddingStore.removeAll(appFilter);
-            log.debug("已删除文件索引: appId={}, file={}", appId, filePath);
+            try {
+                embeddingStore.removeAll(filter);
+                log.debug("已删除文件索引: appId={}, file={}", appId, filePath);
+            } catch (JedisDataException jde) {
+                // Jedis 在 DEL 0 key 时会抛出“wrong number of arguments”错误，视为无匹配安全忽略
+                if (jde.getMessage() != null && jde.getMessage().contains("wrong number of arguments for 'del'")) {
+                    log.debug("未找到需删除的文件索引，跳过: appId={}, file={}", appId, filePath);
+                } else {
+                    throw jde;
+                }
+            }
         } catch (Exception e) {
             log.error("删除文件索引失败: appId={}, file={}, error={}",
                     appId, filePath, e.getMessage(), e);
