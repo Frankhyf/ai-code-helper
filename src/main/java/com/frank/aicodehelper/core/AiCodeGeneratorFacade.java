@@ -205,9 +205,18 @@ public class AiCodeGeneratorFacade {
                             saveCompleteResponse(appId, userId, collector);
                         }
                         
-                        // 执行 Vue 项目构建（同步执行，确保预览时项目已就绪）
+                        // 使用虚拟线程异步执行 Vue 项目构建，避免阻塞流式响应
+                        // 前端收到 complete 后可立即展示结果，构建在后台进行
                         String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + "vue_project_" + appId;
-                        vueProjectBuilder.buildProject(projectPath);
+                        Thread.startVirtualThread(() -> {
+                            log.info("App {} 开始异步构建 Vue 项目: {}", appId, projectPath);
+                            boolean success = vueProjectBuilder.buildProject(projectPath);
+                            if (success) {
+                                log.info("App {} Vue 项目构建成功", appId);
+                            } else {
+                                log.warn("App {} Vue 项目构建失败", appId);
+                            }
+                        });
                         
                         try {
                             sink.complete();

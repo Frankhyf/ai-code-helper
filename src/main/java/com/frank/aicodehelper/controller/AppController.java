@@ -130,6 +130,22 @@ public class AppController {
     }
 
     /**
+     * 检查 Vue 项目构建状态
+     * 用于前端轮询判断预览是否可用
+     *
+     * @param appId 应用ID
+     * @return 构建是否完成（dist 目录是否存在）
+     */
+    @GetMapping("/build-status/{appId}")
+    public BaseResponse<Boolean> getBuildStatus(@PathVariable Long appId) {
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID无效");
+        // 检查 dist 目录是否存在
+        String distPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + "vue_project_" + appId + File.separator + "dist";
+        boolean ready = new File(distPath).exists();
+        return ResultUtils.success(ready);
+    }
+
+    /**
      * 下载应用代码
      *
      * @param appId    应用ID

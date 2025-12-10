@@ -288,6 +288,16 @@
             @load="onPreviewLoad"
           ></iframe>
           
+          <!-- 构建状态提示（Vue 项目） -->
+          <div
+            v-if="currentApp?.codeGenType === 'vue_project' && !buildReady"
+            class="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm space-y-3"
+          >
+            <div class="w-10 h-10 border-4 border-cyan-400/40 border-t-cyan-400 rounded-full animate-spin"></div>
+            <div class="text-gray-200 text-sm">Vue 项目正在构建，请稍后...</div>
+            <div class="text-xs text-gray-400">检测 dist 是否生成中</div>
+          </div>
+
           <!-- 编辑模式遮罩提示 -->
           <div 
             v-if="isEditMode && previewUrl === 'about:blank'"
@@ -314,6 +324,7 @@ import type { App, ChatMessage } from '@/types'
 import { showToast } from 'vant'
 import { getStaticPreviewUrl } from '@/constants/codeGenType'
 import axios from 'axios'
+import http from '@/utils/request'
 import { 
   type SelectedElementInfo, 
   injectEditorScript, 
@@ -349,6 +360,9 @@ const hasMoreHistory = ref(false)
 const loadingHistory = ref(false)
 const lastCreateTime = ref<string | undefined>(undefined)
 const isDownloading = ref(false)
+const buildReady = ref(true) // Vue 项目 dist 是否已生成
+let buildCheckTimer: ReturnType<typeof setInterval> | null = null
+let buildCheckAttempts = 0
 
 // 可视化编辑模式状态
 const isEditMode = ref(false)
@@ -403,9 +417,51 @@ const scrollToBottom = (smooth: boolean = true) => {
   }
 }
 
-const updatePreviewUrl = (app?: App | null) => {
+const stopBuildPolling = () => {
+  if (buildCheckTimer) {
+    clearInterval(buildCheckTimer)
+    buildCheckTimer = null
+    buildCheckAttempts = 0
+  }
+}
+
+const checkBuildStatus = async (appId: number | string): Promise<boolean> => {
+  try {
+    const ready = await http.get<boolean>(`/app/build-status/${appId}`)
+    return !!ready
+  } catch (err) {
+    console.warn('检查构建状态失败:', err)
+    return false
+  }
+}
+
+const startBuildPolling = (appId: number | string, codeGenType: string) => {
+  stopBuildPolling()
+  buildReady.value = false
+  buildCheckAttempts = 0
+
+  buildCheckTimer = setInterval(async () => {
+    buildCheckAttempts++
+    const ready = await checkBuildStatus(appId)
+    if (ready) {
+      buildReady.value = true
+      previewUrl.value = getStaticPreviewUrl(codeGenType, String(appId))
+      showToast('构建完成，预览可用')
+      stopBuildPolling()
+      return
+    }
+    if (buildCheckAttempts >= 60) {
+      stopBuildPolling()
+      showToast('构建仍在进行中，请稍后刷新预览')
+    }
+  }, 2000)
+}
+
+const updatePreviewUrl = async (app?: App | null) => {
   if (!app) {
     previewUrl.value = 'about:blank'
+    buildReady.value = true
+    stopBuildPolling()
     return
   }
 
@@ -422,8 +478,23 @@ const updatePreviewUrl = (app?: App | null) => {
   // 使用统一的预览 URL 生成方法
   // 自动识别 Vue 项目并添加 dist 后缀
   const codeGenType = app.codeGenType || 'html'
-  previewUrl.value = getStaticPreviewUrl(codeGenType, String(app.id))
-  console.log('实时预览URL:', previewUrl.value, '代码类型:', codeGenType, '已部署:', !!app.deployedTime)
+  if (codeGenType === 'vue_project') {
+    const ready = await checkBuildStatus(app.id)
+    if (ready) {
+      buildReady.value = true
+      stopBuildPolling()
+      previewUrl.value = getStaticPreviewUrl(codeGenType, String(app.id))
+    } else {
+      buildReady.value = false
+      previewUrl.value = 'about:blank'
+      startBuildPolling(app.id, codeGenType)
+    }
+  } else {
+    buildReady.value = true
+    stopBuildPolling()
+    previewUrl.value = getStaticPreviewUrl(codeGenType, String(app.id))
+  }
+  console.log('实时预览URL:', previewUrl.value, '代码类型:', codeGenType, '已部署:', !!app.deployedTime, '构建完成:', buildReady.value)
 }
 
 // 计算属性
@@ -884,6 +955,8 @@ onUnmounted(() => {
   if (eventSource.value) {
     eventSource.value.close()
   }
+  
+  stopBuildPolling()
   
   // 清理可视化编辑相关资源
   if (messageListenerCleanup) {
