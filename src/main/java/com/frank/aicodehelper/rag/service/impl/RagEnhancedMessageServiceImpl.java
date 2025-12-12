@@ -73,7 +73,8 @@ public class RagEnhancedMessageServiceImpl implements RagEnhancedMessageService 
 
         if (CollUtil.isNotEmpty(relevantChunks)) {
             enhanced.append("=== 相关代码上下文 (RAG检索) ===\n");
-            enhanced.append("以下是与您需求语义相关的代码片段，可直接参考进行修改：\n\n");
+            enhanced.append("以下是与您需求语义相关的代码片段，系统已自动检索提供：\n");
+            enhanced.append("⚠️ 重要：这些代码已在此提供，请直接使用，无需再调用 readFile 读取。\n\n");
 
             int totalSize = 0;
             for (ContextChunk chunk : relevantChunks) {
@@ -118,26 +119,41 @@ public class RagEnhancedMessageServiceImpl implements RagEnhancedMessageService 
 
     /**
      * 格式化代码片段用于展示
+     * 标注内容完整性：完整内容可直接用于 modifyFile，截断内容需要先 readFile
      */
     private String formatChunkForDisplay(ContextChunk chunk) {
         StringBuilder sb = new StringBuilder();
 
         // 提取文件基础路径（去掉 #template, #script 等后缀）
         String displayPath = chunk.getFilePath();
+        String chunkSection = "";
         if (displayPath.contains("#")) {
+            chunkSection = displayPath.substring(displayPath.indexOf("#") + 1);
             displayPath = displayPath.substring(0, displayPath.indexOf("#"));
         }
-
-        // 添加文件路径和相关度
-        sb.append(String.format("[%s] 相关度: %.2f\n", displayPath, chunk.getScore()));
 
         // 添加代码内容
         String content = chunk.getContent();
         String language = getLanguageTag(chunk.getFilePath());
 
-        // 截断过长的内容
-        if (content.length() > MAX_CHUNK_DISPLAY_SIZE) {
+        // 判断是否需要截断
+        boolean isTruncated = content.length() > MAX_CHUNK_DISPLAY_SIZE;
+        boolean isPartialFile = StrUtil.isNotBlank(chunkSection);
+
+        // 根据完整性添加不同标注
+        if (isTruncated) {
+            // 内容被截断：需要 readFile
+            sb.append(String.format("📄 [%s] 相关度: %.2f\n", displayPath, chunk.getScore()));
+            sb.append("⚠️ 内容已截断，如需修改此文件请先调用 readFile 获取完整内容\n");
             content = content.substring(0, MAX_CHUNK_DISPLAY_SIZE) + "\n// ... 内容已截断 ...";
+        } else if (isPartialFile) {
+            // Vue SFC 部分片段（template/script/style）：可用于 modifyFile，但需注意是部分内容
+            sb.append(String.format("📄 [%s] <%s>部分 相关度: %.2f\n", displayPath, chunkSection, chunk.getScore()));
+            sb.append("✅ 此为文件的 " + chunkSection + " 部分，内容完整，可直接用于 modifyFile\n");
+        } else {
+            // 完整内容：可直接用于 modifyFile
+            sb.append(String.format("📄 [%s] 相关度: %.2f\n", displayPath, chunk.getScore()));
+            sb.append("✅ 内容完整，可直接用于 modifyFile，无需调用 readFile\n");
         }
 
         sb.append("```").append(language).append("\n");

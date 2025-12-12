@@ -31,7 +31,6 @@ public class SimpleTextStreamHandler {
     public Flux<String> handle(Flux<String> originFlux,
                                ChatHistoryService chatHistoryService,
                                long appId, User loginUser) {
-        // 【方案B】直接透传流，不再收集和保存
         // 保存逻辑已在 AiCodeGeneratorFacade.processCodeStream 中通过 sink 回调实现
         return originFlux
                 .doOnError(error -> {

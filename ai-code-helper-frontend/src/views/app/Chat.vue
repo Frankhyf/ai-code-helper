@@ -338,6 +338,7 @@ import AiMessageRenderer from '@/components/AiMessageRenderer.vue'
 const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
+const previousAppId = ref<string | null>(null)
 
 // 保持ID为字符串，避免精度丢失
 const appId = computed(() => {
@@ -377,6 +378,15 @@ const nameInputRef = ref<HTMLInputElement | null>(null)
 // 用户滚动状态：用于判断用户是否正在查看历史消息
 const userScrolledUp = ref(false)
 let scrollTimeout: ReturnType<typeof setTimeout> | null = null
+
+// 清理当前界面状态（切换应用或加载失败时使用）
+const resetCurrentView = () => {
+  previewUrl.value = 'about:blank'
+  buildReady.value = true
+  stopBuildPolling()
+  appStore.setCurrentApp(null)
+  appStore.chatMessages = []
+}
 
 // 检测用户是否滚动到底部附近（允许一定误差）
 const isNearBottom = () => {
@@ -522,10 +532,10 @@ const sendMessage = async () => {
     console.log('[Chat] 添加元素信息到提示词:', message)
   }
   
-  // 发送后清除选中元素并退出编辑模式
-  if (isEditMode.value) {
-    exitEditModeHandler()
-  }
+      // 发送后清除选中元素并退出编辑模式
+      if (isEditMode.value) {
+        exitEditModeHandler()
+      }
 
   try {
     const source = await appStore.chatWithAI(appId.value, message)
@@ -827,6 +837,12 @@ const loadMoreHistory = async () => {
 // 加载应用详情和对话历史
 const loadAppData = async (retryCount = 0) => {
   try {
+    // 如果切换了 appId，先清空旧状态
+    if (previousAppId.value !== appId.value) {
+      resetCurrentView()
+      previousAppId.value = appId.value
+    }
+
     const detail = await appStore.fetchAppDetail(appId.value)
     
     // 如果获取失败且重试次数少于3次，延迟后重试
@@ -839,7 +855,7 @@ const loadAppData = async (retryCount = 0) => {
     }
     
     // 设置预览URL
-    updatePreviewUrl(detail ?? null)
+    await updatePreviewUrl(detail ?? null)
 
     // 加载对话历史
     await loadChatHistory()
@@ -849,6 +865,7 @@ const loadAppData = async (retryCount = 0) => {
     
   } catch (error) {
     console.error('加载应用数据失败:', error)
+    resetCurrentView()
     
     // 如果是刚创建的应用，可能还没完全写入数据库，尝试重试
     if (retryCount < 3) {
@@ -908,6 +925,12 @@ const autoSendInitialMessage = async (app?: App | null) => {
 
 // 页面加载时获取数据
 onMounted(() => {
+  loadAppData()
+})
+
+// 监听路由 appId 变化，主动重置并加载新应用
+watch(appId, () => {
+  resetCurrentView()
   loadAppData()
 })
 
