@@ -82,13 +82,13 @@ public abstract class BaseTool {
      * @throws SecurityException 如果路径不安全（绝对路径或路径遍历）
      */
     protected Path resolveFilePath(String relativeFilePath, Long appId) {
-        // 🔒 安全检查1：禁止绝对路径
+        //  安全检查1：禁止绝对路径
         Path path = Paths.get(relativeFilePath);
         if (path.isAbsolute()) {
             throw new SecurityException("安全限制：不允许使用绝对路径 - " + relativeFilePath);
         }
 
-        // 🔒 安全检查2：禁止路径遍历序列
+        //  安全检查2：禁止路径遍历序列
         if (relativeFilePath.contains("..")) {
             throw new SecurityException("安全限制：不允许使用路径遍历序列 - " + relativeFilePath);
         }
@@ -104,7 +104,7 @@ public abstract class BaseTool {
                     .resolve(relativeFilePath).normalize();
         }
 
-        // 🔒 安全检查3：确保解析后的路径仍在允许的根目录内
+        //  安全检查3：确保解析后的路径仍在允许的根目录内
         Path allowedRoot = Paths.get(AppConstant.CODE_OUTPUT_ROOT_DIR).normalize();
         if (!resolvedPath.startsWith(allowedRoot)) {
             throw new SecurityException("安全限制：路径超出允许范围 - " + relativeFilePath);

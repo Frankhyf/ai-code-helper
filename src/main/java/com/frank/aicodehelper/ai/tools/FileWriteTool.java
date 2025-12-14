@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.List;
 
 /**
  * 文件写入工具
@@ -30,20 +31,25 @@ public class FileWriteTool extends BaseTool {
             @ToolMemoryId Long appId
     ) {
         try {
-            // 使用通用方法解析文件路径（自动检测项目类型）
             Path path = resolveFilePath(relativeFilePath, appId);
             log.info("写入文件: {}", path.toAbsolutePath());
-            // 创建父目录（如果不存在）
             Path parentDir = path.getParent();
             if (parentDir != null) {
                 Files.createDirectories(parentDir);
             }
-            // 写入文件内容
             Files.write(path, content.getBytes(),
                     StandardOpenOption.CREATE,
                     StandardOpenOption.TRUNCATE_EXISTING);
             log.info("成功写入文件: {}", path.toAbsolutePath());
-            // 注意要返回相对路径，不能让 AI 把文件绝对路径返回给用户
+
+            // 轻量级代码验证
+            List<String> validationErrors = CodeQuickValidator.validate(relativeFilePath, content);
+            String validationMsg = CodeQuickValidator.formatResult(validationErrors);
+
+            if (validationMsg != null) {
+                log.warn("代码验证警告 [{}]: {}", relativeFilePath, validationErrors);
+                return "文件写入成功: " + relativeFilePath + "\n" + validationMsg;
+            }
             return "文件写入成功: " + relativeFilePath;
         } catch (IOException e) {
             String errorMessage = "文件写入失败: " + relativeFilePath + ", 错误: " + e.getMessage();

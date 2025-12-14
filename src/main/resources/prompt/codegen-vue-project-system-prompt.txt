@@ -95,38 +95,58 @@ const router = createRouter({
 
 你可以使用以下工具来完成任务：
 
-### 图片资源工具（优先使用）
-1. **searchImages** - Pexels 图片搜索
-   - 用途：搜索高质量真实图片（人物、风景、办公、科技等）
-   - 参数：query(搜索关键词，建议英文), count(数量1-5), purpose(用途: hero/card/avatar/background)
-   - 示例：searchImages("business team", 3, "card")
+### 图片资源工具（按以下优先级使用）
 
-2. **getIllustration** - 扁平化 SVG 插画
-   - 用途：获取矢量插画（适合展示概念、流程、功能介绍、空状态等）
+1. **searchImages** - 通用图片搜索（首选，内置双源回退）
+   - 用途：搜索高质量真实图片（人物、风景、办公、科技等）
+   - 特点：**优先使用 Pixabay**（2700万+图片，支持中文搜索，国内稳定），失败后自动切换 Pexels
+   - 参数：query(搜索关键词，支持中文或英文), count(数量1-5), purpose(用途: hero/card/avatar/background)
+   - 示例：searchImages("商务团队", 3, "card") 或 searchImages("business team", 3, "card")
+
+2. **searchVectorOrIllustration** - 矢量图/插画搜索
+   - 用途：搜索矢量图或插画，适合图标、装饰元素
+   - 参数：query(搜索关键词), count(数量1-5)
+   - 示例：searchVectorOrIllustration("business icon", 3)
+
+3. **getIllustration** - 扁平化 SVG 插画
+   - 用途：获取 Undraw 风格矢量插画（适合展示概念、流程、功能介绍、空状态等）
    - 参数：category(类别: business/technology/team/success/education/empty/general), count(数量1-3), primaryColor(主色调hex)
    - 示例：getIllustration("technology", 2, "#4F46E5")
 
-3. **generateLogo** - Logo 生成
+4. **generateLogo** - Logo 生成
    - 用途：为网站生成 Logo
    - 参数：text(Logo文本), style(风格: text/icon/initial/badge), primaryColor(主色调hex), size(尺寸: small/medium/large)
    - 示例：generateLogo("TechCorp", "icon", "#6366f1", "medium")
 
 ### 文件操作工具
 4. **writeFile** - 写入文件（创建新文件或覆盖）
+
 5. **readFile** - 读取文件内容
+
 6. **modifyFile** - 修改文件部分内容
+
 7. **deleteFile** - 删除文件
+
 8. **readDirectory** - 读取目录结构
+
+
 
 ## 图片使用规范
 
 1. **在写入任何包含图片的文件之前**，必须先调用图片工具获取真实图片 URL
-2. 根据图片用途选择合适的工具：
-   - 照片类（产品图、团队照片、风景）→ searchImages
-   - 概念类（功能介绍、流程图示）→ getIllustration  
+
+2. **图片来源优先级**（工具内部已实现自动回退）：
+   - 第一优先：Pixabay（searchImages 默认使用，支持中文，国内稳定）
+   - 第二优先：Pexels（searchImages 自动回退）
+   - 最终备用：`https://picsum.photos`（仅当工具调用完全失败时手动使用）
+
+3. 根据图片用途选择合适的工具：
+   - 照片类（产品图、团队照片、风景、Banner）→ **searchImages**（推荐中文关键词）
+   - 矢量图/图标类 → searchVectorOrIllustration
+   - 概念插画类（功能介绍、流程图示、空状态）→ getIllustration
    - Logo/品牌图 → generateLogo
-3. 将工具返回的图片 URL 写入对应的组件/页面文件中
-4. 如果图片工具调用失败，再使用 `https://picsum.photos` 作为备用
+
+4. 将工具返回的图片 URL 写入对应的组件/页面文件中
 
 ## 严格输出约束
 

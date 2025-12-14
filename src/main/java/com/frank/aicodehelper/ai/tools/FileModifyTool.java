@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.List;
 
 /**
  * 文件修改工具
@@ -81,9 +82,18 @@ public class FileModifyTool extends BaseTool{
                 log.warn("替换后内容未变化");
                 return "信息：替换后文件内容未发生变化 - " + relativeFilePath;
             }
-            
+
             Files.writeString(path, modifiedContent, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
             log.info("=== 成功修改文件: {} ===", path.toAbsolutePath());
+
+            // 轻量级代码验证
+            List<String> validationErrors = CodeQuickValidator.validate(relativeFilePath, modifiedContent);
+            String validationMsg = CodeQuickValidator.formatResult(validationErrors);
+
+            if (validationMsg != null) {
+                log.warn("代码验证警告 [{}]: {}", relativeFilePath, validationErrors);
+                return "文件修改成功: " + relativeFilePath + "\n" + validationMsg;
+            }
             return "文件修改成功: " + relativeFilePath;
         } catch (IOException e) {
             String errorMessage = "修改文件失败: " + relativeFilePath + ", 错误: " + e.getMessage();
