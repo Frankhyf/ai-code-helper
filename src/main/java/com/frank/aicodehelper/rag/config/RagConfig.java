@@ -31,14 +31,20 @@ public class RagConfig {
     @Data
     public static class RetrievalConfig {
         /**
-         * 默认检索数量
+         * 默认检索数量（固定返回 1 个，有 readFile 工具兜底）
          */
-        private int defaultTopK = 5;
+        private int defaultTopK = 1;
 
         /**
-         * 默认最低相似度阈值
+         * 默认最低相似度阈值（设为 0 保证始终返回 top1）
          */
-        private double defaultMinScore = 0.6;
+        private double defaultMinScore = 0.0;
+
+        /**
+         * 是否保证至少返回 top1（即使低于阈值）
+         * 注：当 minScore=0 时此配置不再需要，保留用于配置灵活性
+         */
+        private boolean guaranteeTopOne = true;
     }
 
     @Data

@@ -174,9 +174,23 @@ public class ProjectContextServiceImpl implements ProjectContextService {
 
     @Override
     public List<ContextChunk> searchContext(Long appId, String query) {
-        return searchContext(appId, query,
+        List<ContextChunk> results = searchContext(appId, query,
                 ragConfig.getRetrieval().getDefaultTopK(),
                 ragConfig.getRetrieval().getDefaultMinScore());
+        
+        // 如果阈值过滤后没有结果，且配置了保证返回 top1，则降低阈值重试
+        if (results.isEmpty() && ragConfig.getRetrieval().isGuaranteeTopOne()) {
+            log.info("🔄 [RAG检索] 阈值 {} 过滤后无结果，降级为返回 top1 (不限阈值)", 
+                    ragConfig.getRetrieval().getDefaultMinScore());
+            results = searchContext(appId, query, 1, 0.0);
+            if (!results.isEmpty()) {
+                log.info("✅ [RAG检索] 降级成功，返回 top1: file={}, score={}", 
+                        results.get(0).getFilePath(), 
+                        String.format("%.2f", results.get(0).getScore()));
+            }
+        }
+        
+        return results;
     }
 
     /**

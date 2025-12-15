@@ -34,12 +34,12 @@ public class RagEnhancedMessageServiceImpl implements RagEnhancedMessageService 
     /**
      * 单个代码片段的最大展示字符数（避免注入过多内容）
      */
-    private static final int MAX_CHUNK_DISPLAY_SIZE = 2000;
+    private static final int MAX_CHUNK_DISPLAY_SIZE = 6000;
 
     /**
-     * RAG 注入的最大总字符数
+     * RAG 注入的最大总字符数（现在只返回 1 个 chunk，放宽单个限制）
      */
-    private static final int MAX_RAG_TOTAL_SIZE = 8000;
+    private static final int MAX_RAG_TOTAL_SIZE = 6000;
 
     @Override
     public String enhanceMessage(String userMessage, Long appId, CodeGenTypeEnum codeGenType) {
